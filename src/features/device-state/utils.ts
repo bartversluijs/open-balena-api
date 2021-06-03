@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
-
 import * as semver from 'balena-semver';
+import { sbvrUtils, dbModule } from '@balena/pinejs';
 
 import { DEFAULT_SUPERVISOR_POLL_INTERVAL } from '../../lib/config';
 import { LocalBody } from './routes/state-patch';
@@ -96,3 +96,15 @@ export const metricsPatchFields = [
 	'cpu_temp',
 	'cpu_usage',
 ] as const;
+
+let $readTransaction: dbModule.Database['readTransaction'] = (
+	...args: Parameters<dbModule.Database['readTransaction']>
+) => sbvrUtils.db.readTransaction!(...args);
+export const setReadTransaction = (
+	newReadTransaction: dbModule.Database['readTransaction'],
+) => {
+	$readTransaction = newReadTransaction;
+};
+export const readTransaction: dbModule.Database['readTransaction'] = (
+	...args: Parameters<dbModule.Database['readTransaction']>
+) => $readTransaction(...args);

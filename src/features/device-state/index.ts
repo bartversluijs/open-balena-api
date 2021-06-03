@@ -5,12 +5,12 @@ import { EventEmitter } from 'events';
 import { apiKeyMiddleware } from '../../infra/auth';
 
 import { resolveOrGracefullyDenyDevices } from './middleware';
-import { stateV2 } from './routes/state';
+import { stateV2 } from './routes/state-v2';
+import { stateV3 } from './routes/state-v3';
 import { statePatch } from './routes/state-patch';
 
-export { setReadTransaction } from './routes/state';
 export {
-	filterDeviceConfig,
+	setReadTransaction,
 	formatImageLocation,
 	setMinPollInterval,
 	getReleaseForDevice,
@@ -25,6 +25,12 @@ export const setup = (app: Application) => {
 		resolveOrGracefullyDenyDevices,
 		apiKeyMiddleware,
 		stateV2,
+	);
+	app.get(
+		'/device/v3/:uuid/state',
+		resolveOrGracefullyDenyDevices,
+		apiKeyMiddleware,
+		stateV3,
 	);
 	app.patch(
 		'/device/v2/:uuid/state',
