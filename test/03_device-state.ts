@@ -1,3 +1,4 @@
+import * as _ from 'lodash';
 import * as Bluebird from 'bluebird';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
@@ -361,8 +362,8 @@ describe('Device State v2 patch', function () {
 
 	it('should save the updated device state', async () => {
 		const devicePatchBody = {
-			local: {
-				device_name: 'reported_device_name',
+			[device.uuid]: {
+				name: 'reported_device_name',
 				status: 'Idle',
 				is_online: true,
 				os_version: 'balenaOS 2.50.1+rev1',
@@ -386,13 +387,15 @@ describe('Device State v2 patch', function () {
 			},
 		};
 
-		await device.patchStateV2(devicePatchBody);
+		await device.patchStateV3(devicePatchBody);
 
 		await expectResourceToMatch(
 			pineUser,
 			'device',
 			device.id,
-			devicePatchBody.local,
+			_.mapKeys(devicePatchBody[device.uuid], (_v, key) =>
+				key === 'name' ? 'device_name' : key,
+			),
 		);
 	});
 

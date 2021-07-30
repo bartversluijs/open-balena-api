@@ -29,7 +29,7 @@ type ServiceComposition = AnyObject;
 export type StateV3 = {
 	[uuid: string]: {
 		name: string;
-		parent_device?: string;
+		is_managed_by__device?: string;
 		config?: {
 			[varName: string]: string;
 		};
