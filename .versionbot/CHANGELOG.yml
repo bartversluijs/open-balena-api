@@ -1,4 +1,15 @@
 - commits:
+    - subject: Added Loki environment variables to confd
+      hash: 3b79e00df23c6624bce274eff3d4b0ead8026230
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Robbe Haesendonck
+      nested: []
+  version: 0.174.0
+  date: 2021-11-24T16:40:11.085Z
+- commits:
     - subject: Expose the RPi family config vars to Pi Zero 2W
       hash: 374d6c48b28710fd64ac2ca49fe62fd82316990d
       body: ''
