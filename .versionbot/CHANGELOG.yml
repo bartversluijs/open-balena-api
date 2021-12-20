@@ -1,4 +1,15 @@
 - commits:
+    - subject: Add v3 state-get endpoint
+      hash: 539042d741c75cc3939131a5f8416d587eff69eb
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 0.179.7
+  date: 2021-12-20T19:48:16.058Z
+- commits:
     - subject: Create service install when pinning supervisor on device creation
       hash: af0f2f7cfce2400639ade4c3a84c9b96ee423e54
       body: ''
