@@ -13,10 +13,12 @@ import {
 	getReleaseForDevice,
 	serviceInstallFromImage,
 	setMinPollInterval,
+	rejectUiConfig,
+	varListInsert,
+	ConfigurationVarsToLabels,
 } from '../utils';
 import { sbvrUtils, errors } from '@balena/pinejs';
 import { events } from '..';
-import { rejectUiConfig, varListInsert } from './state-v3';
 
 const { UnauthorizedError } = errors;
 const { api } = sbvrUtils;
@@ -183,13 +185,6 @@ function buildAppFromRelease(
 		volumes: composition?.volumes || {},
 	};
 }
-
-// These 2 config vars below are mapped to labels if missing for backwards-compatibility
-// See: https://github.com/resin-io/hq/issues/1340
-const ConfigurationVarsToLabels = {
-	RESIN_SUPERVISOR_UPDATE_STRATEGY: 'io.resin.update.strategy',
-	RESIN_SUPERVISOR_HANDOVER_TIMEOUT: 'io.resin.update.handover-timeout',
-};
 
 const releaseExpand = {
 	$select: ['id', 'commit', 'composition'],

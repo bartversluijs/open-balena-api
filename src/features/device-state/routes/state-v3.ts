@@ -7,12 +7,15 @@ import {
 	handleHttpErrors,
 } from '../../../infra/error-handling';
 import {
+	ConfigurationVarsToLabels,
 	filterDeviceConfig,
 	formatImageLocation,
 	getReleaseForDevice,
 	readTransaction,
+	rejectUiConfig,
 	serviceInstallFromImage,
 	setMinPollInterval,
+	varListInsert,
 } from '../utils';
 import { sbvrUtils, errors } from '@balena/pinejs';
 import { events } from '..';
@@ -20,21 +23,6 @@ import { Expand } from 'pinejs-client-core';
 
 const { UnauthorizedError } = errors;
 const { api } = sbvrUtils;
-
-export type EnvVarList = Array<{ name: string; value: string }>;
-export const varListInsert = (
-	varList: EnvVarList,
-	obj: Dictionary<string>,
-	filterFn: (name: string) => boolean = () => true,
-) => {
-	varList.forEach(({ name, value }) => {
-		if (filterFn(name)) {
-			obj[name] = value;
-		}
-	});
-};
-export const rejectUiConfig = (name: string) =>
-	!/^(BALENA|RESIN)_UI/.test(name);
 
 type LocalStateApp = StateV3[string]['apps'][string];
 type ServiceComposition = AnyObject;
@@ -53,7 +41,7 @@ export type StateV3 = {
 				id: number;
 				name: string;
 				class: 'fleet' | 'block' | 'app';
-				parent_app?: string;
+				is_managed_by__device?: string;
 				is_host?: boolean;
 				releases?: {
 					[uuid: string]: {
@@ -98,13 +86,9 @@ export type StateV3 = {
 function buildAppFromRelease(
 	device: AnyObject,
 	application: AnyObject,
-	release: AnyObject | undefined,
+	release: AnyObject,
 	config: Dictionary<string>,
-	stateApp: LocalStateApp,
-): LocalStateApp {
-	if (release == null) {
-		return stateApp;
-	}
+): NonNullable<LocalStateApp['releases']> {
 	let composition: AnyObject = {};
 	const services: NonNullable<LocalStateApp['releases']>[string]['services'] =
 		{};
@@ -183,27 +167,20 @@ function buildAppFromRelease(
 		}
 	});
 
-	stateApp.releases = {
+	const releases: LocalStateApp['releases'] = {
 		[release.commit]: {
 			id: release.id,
 			...(Object.keys(services).length > 0 ? { services } : undefined),
 		},
 	};
 	if (composition.networks != null) {
-		stateApp.releases[release.commit].networks = composition.networks;
+		releases[release.commit].networks = composition.networks;
 	}
 	if (composition.volumes != null) {
-		stateApp.releases[release.commit].volumes = composition.volumes;
+		releases[release.commit].volumes = composition.volumes;
 	}
-	return stateApp;
+	return releases;
 }
-
-// These 2 config vars below are mapped to labels if missing for backwards-compatibility
-// See: https://github.com/resin-io/hq/issues/1340
-const ConfigurationVarsToLabels = {
-	RESIN_SUPERVISOR_UPDATE_STRATEGY: 'io.resin.update.strategy',
-	RESIN_SUPERVISOR_HANDOVER_TIMEOUT: 'io.resin.update.handover-timeout',
-};
 
 const releaseExpand = {
 	$select: ['id', 'commit', 'composition'],
@@ -300,7 +277,7 @@ const stateQuery = _.once(() =>
 			$expand: {
 				...deviceExpand,
 				manages__device: {
-					$select: ['uuid', 'device_name', 'belongs_to__application'],
+					$select: ['uuid', 'device_name'],
 					$expand: deviceExpand,
 				},
 			},
@@ -317,7 +294,7 @@ export const getStateV3 = async (
 
 	let apps = getUserAppState(device, config);
 
-	const supervisorRelease = device.should_be_managed_by__release?.[0];
+	const supervisorRelease = device.should_be_managed_by__release[0];
 	if (supervisorRelease) {
 		apps = {
 			...getSupervisorAppState(device),
@@ -404,18 +381,15 @@ const getAppState = (
 	config: Dictionary<string>,
 ): StateV3[string]['apps'] => {
 	return {
-		[application.uuid]: buildAppFromRelease(
-			device,
-			application,
-			release,
-			config,
-			{
-				id: application.id,
-				name: application.app_name,
-				is_host: application.is_host,
-				class: application.is_of__class,
-			},
-		),
+		[application.uuid]: {
+			id: application.id,
+			name: application.app_name,
+			is_host: application.is_host,
+			class: application.is_of__class,
+			...(release != null && {
+				releases: buildAppFromRelease(device, application, release, config),
+			}),
+		},
 	};
 };
 
